@@ -1,7 +1,6 @@
+# utils/video_capture.py
 import cv2
 from cap_from_youtube import cap_from_youtube
-
-
 def setup_video_capture(video_url, start_time=5, resolution='720p'):
     """
     Set up video capture from YouTube URL
