@@ -1,0 +1,15 @@
+lanes:
+  - url: "https://youtu.be/MNn9qKG2UFI"
+  - url: "https://youtu.be/alternateURL1"
+  - url: "https://youtu.be/alternateURL2"
+  - url: "https://youtu.be/alternateURL3"
+
+detection:
+  model_path: "models/yolov8m.onnx"
+  confidence_threshold: 0.5
+  iou_threshold: 0.5
+
+traffic_light:
+  standard_duration: 10
+  max_duration: 30
+  min_duration: 5

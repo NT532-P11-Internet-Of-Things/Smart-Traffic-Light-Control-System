@@ -10,9 +10,21 @@
  * For ONNX, if you have a NVIDIA GPU, then install the **onnxruntime-gpu**, otherwise use the **onnxruntime** library.
 
 # Installation
+First,
 ```shell
 git clone https://github.com/ibaiGorordo/ONNX-YOLOv8-Object-Detection.git
 cd ONNX-YOLOv8-Object-Detection
+```
+Then, install virtual environment
+```shell
+python3 -m venv env
+# For Windows:
+.\env\Scripts\activate
+# For macOS/Linux:
+source env/bin/activate
+```
+And,
+```shell
 pip install -r requirements.txt
 ```
 ### ONNX Runtime
@@ -40,12 +52,6 @@ The original YOLOv8 model can be found in this repository: [YOLOv8 Repository](h
 - The License of the models is GPL-3.0 license: [License](https://github.com/ultralytics/ultralytics/blob/main/LICENSE)
 
 # Examples
-
- * **Image inference**:
- ```shell
- python image_object_detection.py
- ```
-
  * **Webcam inference**:
  ```shell
  python webcam_object_detection.py

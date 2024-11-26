@@ -1,4 +1,5 @@
 opencv-python
 imread-from-url
-onnxruntime-gpu
+onnxruntime
 cap-from-youtube
+numpy
