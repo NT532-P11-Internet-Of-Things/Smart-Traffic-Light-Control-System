@@ -3,104 +3,9 @@ import numpy as np
 import time
 from yolov8 import YOLOv8
 from cap_from_youtube import cap_from_youtube
-
-
-class TrafficScheduler:
-    def __init__(self, num_lanes=4):
-        self.lanes = [
-            {'id': 1, 'vehicles': 0, 'is_green': False, 'time_ready': False},
-            {'id': 2, 'vehicles': 0, 'is_green': True, 'time_ready': False},
-            {'id': 3, 'vehicles': 0, 'is_green': False, 'time_ready': False},
-            {'id': 4, 'vehicles': 0, 'is_green': True, 'time_ready': False}
-        ]
-        self.base_green_time = 10  # Base green light duration
-        self.max_green_time = 30  # Maximum green light duration
-        self.min_green_time = 5  # Minimum green light duration
-
-    def update_lane_vehicles(self, lane_id, vehicle_count):
-        """Update vehicle count for a specific lane"""
-        for lane in self.lanes:
-            if lane['id'] == lane_id:
-                lane['vehicles'] = vehicle_count
-                break
-
-    def get_scheduling_time(self, lane_id):
-        """Calculate green light time based on vehicle count"""
-        # Find the lane
-        current_lane = next((lane for lane in self.lanes if lane['id'] == lane_id), None)
-        if not current_lane:
-            return self.base_green_time
-
-        # Calculate dynamic green time
-        vehicle_factor = current_lane['vehicles']
-        dynamic_time = min(
-            max(
-                self.base_green_time + (vehicle_factor * 0.5),
-                self.min_green_time
-            ),
-            self.max_green_time
-        )
-
-        return round(dynamic_time)
-
-    def switch_traffic_lights(self, lane_timers):
-        """Switch traffic lights for opposite lane pairs"""
-        # Opposite lane pairs: 1-3 and 2-4
-        opposite_pairs = [(1, 3), (2, 4)]
-
-        for pair in opposite_pairs:
-            lane1, lane2 = pair
-
-            # Find the lanes in the lanes list
-            lane1_obj = next((lane for lane in self.lanes if lane['id'] == lane1), None)
-            lane2_obj = next((lane for lane in self.lanes if lane['id'] == lane2), None)
-
-            # Check the timers of a pair of opposite lanes
-            timer1 = lane_timers[lane1 -1]
-            timer2 = lane_timers[lane2 -1]
-
-            # Switch their green status
-            if timer1.ready_to_switch and timer2.ready_to_switch:
-                timer1.ready_to_switch = False
-                timer2.ready_to_switch = False
-
-                lane1_obj['is_green'] = not lane1_obj['is_green']
-                lane2_obj['is_green'] = not lane2_obj['is_green']
-
-                # Tính toán thời gian mới dựa trên số lượng xe
-                lane1_green_time = self.get_scheduling_time(lane1)
-                lane2_green_time = self.get_scheduling_time(lane2)
-
-                lane_timers[lane1 - 1].green_time = lane1_green_time
-                lane_timers[lane2 - 1].green_time = lane2_green_time
-
-                # Reset timer
-                lane_timers[lane1 - 1].remaining_time = lane1_green_time
-                lane_timers[lane2 - 1].remaining_time = lane2_green_time
-                lane_timers[lane1 - 1].start_time = time.time()
-                lane_timers[lane2 - 1].start_time = time.time()
-
-        return self.lanes
-
-
-class LaneTimer:
-    def __init__(self, green_time=10):
-        self.green_time = green_time
-        self.remaining_time = green_time
-        self.start_time = time.time()
-        self.is_green = True
-        self.ready_to_switch = False
-
-    def update(self):
-        """Update timer and check if ready to switch"""
-        elapsed_time = time.time() - self.start_time
-        self.remaining_time = max(0, self.green_time - elapsed_time)
-
-        if self.remaining_time <= 0:
-            self.ready_to_switch = True
-            return True
-        return False
-
+from .lane_timer import LaneTimer
+from .traffic_light_manager import TrafficLightManager
+from .traffic_scheduler import TrafficScheduler
 
 class TrafficMonitor:
     def __init__(self, video_urls, model_path):
@@ -118,6 +23,9 @@ class TrafficMonitor:
 
         # Determine uniform frame size
         self.frame_width, self.frame_height = self.get_uniform_frame_size()
+
+        # Initialize traffic light manager
+        self.traffic_light_manager = TrafficLightManager()
 
         # Initialize traffic scheduler
         self.traffic_scheduler = TrafficScheduler()
@@ -171,39 +79,40 @@ class TrafficMonitor:
         detection_frames = []
         lane_counts = []
 
+        self.traffic_light_manager.update_remaining_time()
+
+        # Chuyển trạng thái đèn nếu tất cả lane_timers đã sẵn sàng
+        if LaneTimer.update_all(self.lane_timers):
+            # Get new lane states and timing
+            updated_lanes = self.traffic_light_manager.switch_traffic_lights(self.lane_timers)
+
+            # Update lane timers with new timing
+            for i, lane in enumerate(updated_lanes):
+                self.lane_timers[i].green_time = lane['green_time']
+                self.lane_timers[i].red_time = lane['red_time']
+                self.lane_timers[i].is_green = lane['is_green']
+                self.lane_timers[i].remaining_time = lane['green_time'] if lane['is_green'] else lane['red_time']
+                self.lane_timers[i].start_time = time.time()
+
+        # Xử lý từng frame/ từng làn
         for i, (frame, lane_timer) in enumerate(zip(frames, self.lane_timers)):
             # Detect objects
             boxes, scores, class_ids = self.yolov8_detector(frame)
 
-            # Count vehicles
+            # Đếm xe của làn
             vehicle_count = sum(1 for class_id in class_ids if class_id in self.vehicle_classes)
             lane_counts.append(vehicle_count)
 
-            # Update traffic scheduler
-            self.traffic_scheduler.update_lane_vehicles(i + 1, vehicle_count)
+            # Cập nhật số lượng xe cho làn
+            self.traffic_light_manager.update_lane(i + 1, vehicle_count)
 
-            # Check if lane timer needs update
-            if lane_timer.update():
-                # Lưu lại số xe tại thời điểm chuyển đèn
-                self.vehicle_counts_at_change[i] = vehicle_count
-
-                # Switch traffic lights for opposite lanes
-                updated_lanes = self.traffic_scheduler.switch_traffic_lights(self.lane_timers)
-
-                # Update lane timers based on vehicle count
-                for j, lane in enumerate(updated_lanes):
-                    new_green_time = self.traffic_scheduler.get_scheduling_time(lane['id'])
-                    self.lane_timers[j].green_time = new_green_time
-                    self.lane_timers[j].remaining_time = new_green_time
-
-            # Get current lane state from scheduler
-            lane_state = next((lane for lane in self.traffic_scheduler.lanes if lane['id'] == i + 1), None)
-            is_green = lane_state['is_green'] if lane_state else False
+            # Lấy trạng thái hiện tại của làn
+            is_green = self.traffic_light_manager.get_lane_status(i + 1)['is_green']
 
             # Draw detections
             detection_frame = self.yolov8_detector.draw_detections(frame)
 
-            # Add lane number and vehicle count
+            # Hiển thị Lane number, Vehicle count và Vehicles at Light Change lên màn hình của làn
             cv2.putText(detection_frame, f"Lane {i + 1}", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             cv2.putText(detection_frame, f"Vehicles: {vehicle_count}", (10, 70),
@@ -211,7 +120,7 @@ class TrafficMonitor:
             cv2.putText(detection_frame, f"Vehicles at Light Change: {self.vehicle_counts_at_change[i]}", (10, 150),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 165, 255), 2)
 
-            # Display remaining time for each lane
+            # Hiển thị remaining time của làn
             time_text = f"Time: {max(0, int(lane_timer.remaining_time))}s"
             color = (0, 255, 0) if is_green else (0, 0, 255)
             status = "Green" if is_green else "Red"
