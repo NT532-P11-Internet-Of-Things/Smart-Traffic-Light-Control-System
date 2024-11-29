@@ -13,10 +13,28 @@ class TrafficLightManager:
                 'start_time': time.time(),  # Thời điểm bắt đầu lượt
                 'vehicles_at_change': 0,  # Số xe tại thời điểm chuyển đèn
                 'total_vehicles': 0,  # Tổng số xe trong làn
-                'cycle_count': 0  # Số lần chu kỳ đèn giao thông
+                'cycle_count': 0,  # Số lần chu kỳ đèn giao thông
+                'ready_to_switch': False,
             } for lane_id in range(1, num_lanes + 1)
         ]
         self.opposite_pairs = [(1, 3), (2, 4)]
+
+    def update_timers(self):
+        """Update all lane timers and check if ready to switch"""
+        current_time = time.time()
+        all_ready = True
+
+        for lane in self.lanes:
+            elapsed_time = current_time - lane['start_time']
+            target_time = lane['green_time'] if lane['is_green'] else lane['red_time']
+            lane['remaining_time'] = max(0, target_time - elapsed_time)
+
+            if lane['remaining_time'] <= 0:
+                lane['ready_to_switch'] = True
+            else:
+                all_ready = False
+
+        return all_ready
 
     def update_lane(self, lane_id, vehicles_count):
         """Cập nhật thông tin xe và trạng thái cho một làn"""
@@ -32,7 +50,7 @@ class TrafficLightManager:
                 lane['vehicles_at_change'] = vehicles_at_change
                 lane['cycle_count'] += 1
                 break
-    def switch_traffic_lights(self, lane_timers):
+    def switch_traffic_lights(self):
         """Chuyển trạng thái đèn giao thông cho các làn đối diện"""
         green_time = self.schedule()
 
@@ -41,18 +59,16 @@ class TrafficLightManager:
             lane1_obj = next(lane for lane in self.lanes if lane['id'] == lane1)
             lane2_obj = next(lane for lane in self.lanes if lane['id'] == lane2)
 
-            # Chuyển trạng thái đèn
-            lane1_obj['is_green'] = not lane1_obj['is_green']
-            lane2_obj['is_green'] = not lane2_obj['is_green']
-
             # Cập nhật thời gian và số xe tại thời điểm chuyển
             for lane in [lane1_obj, lane2_obj]:
+                lane['is_green'] = not lane['is_green']
                 lane['green_time'] = green_time
                 lane['red_time'] = green_time + 3
                 lane['remaining_time'] = lane['green_time'] if lane['is_green'] else lane['red_time']
                 lane['start_time'] = time.time()
                 lane['vehicles_at_change'] = lane['total_vehicles']
                 lane['cycle_count'] += 1
+                lane['ready_to_switch'] = False
 
         return self.lanes
 

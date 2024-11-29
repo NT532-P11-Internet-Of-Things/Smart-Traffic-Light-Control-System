@@ -3,16 +3,12 @@ import numpy as np
 import time
 from yolov8 import YOLOv8
 from cap_from_youtube import cap_from_youtube
-from .lane_timer import LaneTimer
 from .traffic_light_manager import TrafficLightManager
-from .traffic_scheduler import TrafficScheduler
 
 class TrafficMonitor:
     def __init__(self, video_urls, model_path):
         self.video_urls = video_urls
-        self.vehicle_classes = {
-            2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'
-        }
+        self.vehicle_classes = {2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'}
         self.vehicle_counts_at_change = [0] * len(video_urls)
 
         # Setup YOLO model
@@ -26,12 +22,6 @@ class TrafficMonitor:
 
         # Initialize traffic light manager
         self.traffic_light_manager = TrafficLightManager()
-
-        # Initialize traffic scheduler
-        self.traffic_scheduler = TrafficScheduler()
-
-        # Initialize lane timers
-        self.lane_timers = [LaneTimer() for _ in range(len(video_urls))]
 
     def setup_video_captures(self):
         """Set up video captures with error handling"""
@@ -75,61 +65,40 @@ class TrafficMonitor:
         return combined_frame
 
     def process_lanes(self, frames):
-        """Process lanes and return detection frames with lane info"""
         detection_frames = []
         lane_counts = []
 
-        self.traffic_light_manager.update_remaining_time()
+        # Check if all lanes are ready to switch
+        if self.traffic_light_manager.update_timers():
+            self.traffic_light_manager.switch_traffic_lights()
 
-        # Chuyển trạng thái đèn nếu tất cả lane_timers đã sẵn sàng
-        if LaneTimer.update_all(self.lane_timers):
-            # Get new lane states and timing
-            updated_lanes = self.traffic_light_manager.switch_traffic_lights(self.lane_timers)
-
-            # Update lane timers with new timing
-            for i, lane in enumerate(updated_lanes):
-                self.lane_timers[i].green_time = lane['green_time']
-                self.lane_timers[i].red_time = lane['red_time']
-                self.lane_timers[i].is_green = lane['is_green']
-                self.lane_timers[i].remaining_time = lane['green_time'] if lane['is_green'] else lane['red_time']
-                self.lane_timers[i].start_time = time.time()
-
-        # Xử lý từng frame/ từng làn
-        for i, (frame, lane_timer) in enumerate(zip(frames, self.lane_timers)):
-            # Detect objects
+        for i, frame in enumerate(frames):
             boxes, scores, class_ids = self.yolov8_detector(frame)
-
-            # Đếm xe của làn
             vehicle_count = sum(1 for class_id in class_ids if class_id in self.vehicle_classes)
             lane_counts.append(vehicle_count)
 
-            # Cập nhật số lượng xe cho làn
             self.traffic_light_manager.update_lane(i + 1, vehicle_count)
+            lane_status = self.traffic_light_manager.get_lane_status(i + 1)
 
-            # Lấy trạng thái hiện tại của làn
-            is_green = self.traffic_light_manager.get_lane_status(i + 1)['is_green']
-
-            # Draw detections
             detection_frame = self.yolov8_detector.draw_detections(frame)
-
-            # Hiển thị Lane number, Vehicle count và Vehicles at Light Change lên màn hình của làn
-            cv2.putText(detection_frame, f"Lane {i + 1}", (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            cv2.putText(detection_frame, f"Vehicles: {vehicle_count}", (10, 70),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-            cv2.putText(detection_frame, f"Vehicles at Light Change: {self.vehicle_counts_at_change[i]}", (10, 150),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 165, 255), 2)
-
-            # Hiển thị remaining time của làn
-            time_text = f"Time: {max(0, int(lane_timer.remaining_time))}s"
-            color = (0, 255, 0) if is_green else (0, 0, 255)
-            status = "Green" if is_green else "Red"
-            cv2.putText(detection_frame, f"{status} Light: {time_text}", (10, 110),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-
+            self._draw_lane_info(detection_frame, i + 1, vehicle_count, lane_status)
             detection_frames.append(detection_frame)
 
         return detection_frames, lane_counts
+
+    def _draw_lane_info(self, frame, lane_number, vehicle_count, lane_status):
+        cv2.putText(frame, f"Lane {lane_number}", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(frame, f"Vehicles: {vehicle_count}", (10, 70),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        cv2.putText(frame, f"Vehicles at Light Change: {lane_status['vehicles_at_change']}",
+                    (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 165, 255), 2)
+
+        time_text = f"Time: {max(0, int(lane_status['remaining_time']))}s"
+        color = (0, 255, 0) if lane_status['is_green'] else (0, 0, 255)
+        status = "Green" if lane_status['is_green'] else "Red"
+        cv2.putText(frame, f"{status} Light: {time_text}", (10, 110),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
     def run(self):
         """Main monitoring loop"""
