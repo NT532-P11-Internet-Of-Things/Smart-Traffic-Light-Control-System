@@ -1,8 +1,11 @@
 import time
+from .firebase_manager import FirebaseManager
 
 
 class TrafficLightManager:
-    def __init__(self, num_lanes=4):
+    def __init__(self, num_lanes=4, firebase_manager=None):
+        self.firebase = firebase_manager
+        self.intersection_id = 'main_intersection'
         self.lanes = [
             {
                 'id': lane_id,
@@ -27,7 +30,7 @@ class TrafficLightManager:
         for lane in self.lanes:
             elapsed_time = current_time - lane['start_time']
             target_time = lane['green_time'] if lane['is_green'] else lane['red_time']
-            lane['remaining_time'] = max(0, target_time - elapsed_time)
+            lane['remaining_time'] = round(max(0, target_time - elapsed_time))
 
             if lane['remaining_time'] <= 0:
                 lane['ready_to_switch'] = True
@@ -41,6 +44,20 @@ class TrafficLightManager:
         for lane in self.lanes:
             if lane['id'] == lane_id:
                 lane['total_vehicles'] = vehicles_count
+
+                # Update Firebase if available
+                if self.firebase:
+                    status_data = {
+                        'vehicle_count': vehicles_count,
+                        'is_green': lane['is_green'],
+                        'remaining_time': lane['remaining_time'],
+                        'last_update': int(time.time())
+                    }
+                    self.firebase.update_lane_status(
+                        self.intersection_id,
+                        lane_id,
+                        status_data
+                    )
                 break
 
     def update_vehicle_at_change(self, lane_id, vehicles_at_change):
@@ -70,6 +87,20 @@ class TrafficLightManager:
                 lane['cycle_count'] += 1
                 lane['ready_to_switch'] = False
 
+                # Update Firebase if available
+                if self.firebase:
+                    status_data = {
+                        'is_green': lane['is_green'],
+                        'remaining_time': lane['remaining_time'],
+                        'vehicle_count': lane['total_vehicles'],
+                        'last_update': int(time.time())
+                    }
+                    self.firebase.update_lane_status(
+                        self.intersection_id,
+                        lane['id'],
+                        status_data
+                    )
+
         return self.lanes
 
     def schedule(self):
@@ -90,7 +121,7 @@ class TrafficLightManager:
                 print("Số lượng xe được tính:", vehicles)
 
                 # Tính thời gian đèn xanh dựa trên số xe
-                green_time = min(max(10 + vehicles * 0.5, 5), 30)
+                green_time = round(min(max(10 + vehicles * 0.5, 5), 30))
                 print("Thời gian green_time:", green_time)
 
         return green_time

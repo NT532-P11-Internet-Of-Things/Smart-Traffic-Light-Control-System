@@ -3,3 +3,4 @@ imread-from-url
 onnxruntime
 cap-from-youtube
 numpy
+firebase-admin

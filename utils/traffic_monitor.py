@@ -4,12 +4,18 @@ import time
 from yolov8 import YOLOv8
 from cap_from_youtube import cap_from_youtube
 from .traffic_light_manager import TrafficLightManager
+from .firebase_manager import FirebaseManager
 
 class TrafficMonitor:
-    def __init__(self, video_urls, model_path):
+    def __init__(self, video_urls, model_path, firebase_credentials=None):
         self.video_urls = video_urls
         self.vehicle_classes = {2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'}
         self.vehicle_counts_at_change = [0] * len(video_urls)
+
+        # Setup Firebase if credentials provided
+        self.firebase_manager = None
+        if firebase_credentials:
+            self.firebase_manager = FirebaseManager(firebase_credentials)
 
         # Setup YOLO model
         self.yolov8_detector = YOLOv8(model_path, conf_thres=0.5, iou_thres=0.5)
@@ -21,7 +27,7 @@ class TrafficMonitor:
         self.frame_width, self.frame_height = self.get_uniform_frame_size()
 
         # Initialize traffic light manager
-        self.traffic_light_manager = TrafficLightManager()
+        self.traffic_light_manager = TrafficLightManager(firebase_manager=self.firebase_manager)
 
     def setup_video_captures(self):
         """Set up video captures with error handling"""
