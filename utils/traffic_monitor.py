@@ -120,7 +120,9 @@ class TrafficMonitor:
             for cap in self.caps:
                 ret, frame = cap.read()
                 if not ret:
-                    break
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Reset video to the first frame
+                    ret, frame = cap.read()
+                    #break
                 frames.append(frame)
 
             if len(frames) < 4:

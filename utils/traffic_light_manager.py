@@ -37,6 +37,19 @@ class TrafficLightManager:
             else:
                 all_ready = False
 
+            # Update Firebase with new remaining time
+            if self.firebase:
+                status_data = {
+                    'remaining_time': lane['remaining_time'],
+                    'green_time': lane['green_time'],
+                    'last_update': int(current_time)
+                }
+                self.firebase.update_lane_status(
+                    self.intersection_id,
+                    lane['id'],
+                    status_data
+                )
+
         return all_ready
 
     def update_lane(self, lane_id, vehicles_count):
@@ -51,6 +64,7 @@ class TrafficLightManager:
                         'vehicle_count': vehicles_count,
                         'is_green': lane['is_green'],
                         'remaining_time': lane['remaining_time'],
+                        'green_time': lane['green_time'],
                         'last_update': int(time.time())
                     }
                     self.firebase.update_lane_status(
@@ -92,6 +106,7 @@ class TrafficLightManager:
                     status_data = {
                         'is_green': lane['is_green'],
                         'remaining_time': lane['remaining_time'],
+                        'green_time': lane['green_time'],
                         'vehicle_count': lane['total_vehicles'],
                         'last_update': int(time.time())
                     }

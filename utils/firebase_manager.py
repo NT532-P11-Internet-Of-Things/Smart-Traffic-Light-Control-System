@@ -18,10 +18,12 @@ class FirebaseManager:
         default_data = {
             'intersections': {
                 'main_intersection': {
+                    'isAuto': True,
                     'lanes': {
                         str(i): {
                             'is_green': i in [2, 4],
                             'remaining_time': 10,
+                            'green_time': 10,
                             'vehicle_count': 0,
                             'last_update': time.time()
                         } for i in range(1, 5)
@@ -33,7 +35,12 @@ class FirebaseManager:
         if not self.ref.get():
             self.ref.set(default_data)
 
+    def is_auto_mode(self, intersection_id):
+        """Check if intersection is in auto mode"""
+        return self.ref.child(f'intersections/{intersection_id}/isAuto').get()
+
     def update_lane_status(self, intersection_id, lane_id, status_data):
-        """Update lane status in Firebase"""
-        lane_ref = self.ref.child(f'intersections/{intersection_id}/lanes/{str(lane_id)}')
-        lane_ref.update(status_data)
+        """Update lane status in Firebase only if in auto mode"""
+        if self.is_auto_mode(intersection_id):
+            lane_ref = self.ref.child(f'intersections/{intersection_id}/lanes/{str(lane_id)}')
+            lane_ref.update(status_data)
