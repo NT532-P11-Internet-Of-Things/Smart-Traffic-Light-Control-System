@@ -40,7 +40,20 @@ class FirebaseManager:
         return self.ref.child(f'intersections/{intersection_id}/isAuto').get()
 
     def update_lane_status(self, intersection_id, lane_id, status_data):
-        """Update lane status in Firebase only if in auto mode"""
+        """Update lane status in Firebase based on auto mode"""
+        lane_ref = self.ref.child(f'intersections/{intersection_id}/lanes/{str(lane_id)}')
+
+        # Always update vehicle count regardless of auto mode
+        if 'vehicle_count' in status_data:
+            lane_ref.update({
+                'vehicle_count': status_data['vehicle_count'],
+                'last_update': status_data['last_update']
+            })
+
+        # Update other status data only if in auto mode
         if self.is_auto_mode(intersection_id):
-            lane_ref = self.ref.child(f'intersections/{intersection_id}/lanes/{str(lane_id)}')
-            lane_ref.update(status_data)
+            # Create a new dict excluding vehicle_count and last_update
+            auto_status = {k: v for k, v in status_data.items()
+                           if k not in ['vehicle_count', 'last_update']}
+            if auto_status:  # Only update if there are other fields to update
+                lane_ref.update(auto_status)
