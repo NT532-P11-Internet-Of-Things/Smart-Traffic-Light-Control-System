@@ -1,6 +1,10 @@
 import time
 from .firebase_manager import FirebaseManager
 
+MIN_GREEN_TIME = 5
+MAX_GREEN_TIME = 30
+BASE_GREEN_TIME = 10
+REWARD_MULTIPLIER = 0.5
 
 class TrafficLightManager:
     def __init__(self, num_lanes=4, firebase_manager=None):
@@ -10,9 +14,9 @@ class TrafficLightManager:
             {
                 'id': lane_id,
                 'is_green': lane_id in [2, 4],  # True/False: Mặc định làn 2 và 4 có đèn xanh
-                'green_time': 10,  # Thời gian đèn xanh mặc định
-                'red_time': 13,  # Thời gian đèn đỏ mặc định
-                'remaining_time': 10,  # Thời gian còn lại của đèn
+                'green_time': BASE_GREEN_TIME,  # Thời gian đèn xanh mặc định
+                'red_time': BASE_GREEN_TIME + 3,  # Thời gian đèn đỏ mặc định
+                'remaining_time': BASE_GREEN_TIME,  # Thời gian còn lại của đèn
                 'start_time': time.time(),  # Thời điểm bắt đầu lượt
                 'vehicles_at_change': 0,  # Số xe tại thời điểm chuyển đèn
                 'total_vehicles': 0,  # Tổng số xe trong làn
@@ -120,10 +124,8 @@ class TrafficLightManager:
 
     def schedule(self):
         """Synchronize green times for opposite lane pairs"""
-        green_time = 0
-        max_vehicles = 0
-
         # Duyệt qua từng cặp làn đối diện
+        current_red_pair = None
         for pair in self.opposite_pairs:
             # Lấy đối tượng làn dựa trên ID
             lane1_obj = next(lane for lane in self.lanes if lane['id'] == pair[0])
@@ -131,13 +133,36 @@ class TrafficLightManager:
 
             # Kiểm tra xem trạng thái đèn xanh của cả hai làn
             if not lane1_obj['is_green'] and not lane2_obj['is_green']:
-                # Tính số lượng xe lớn nhất của cặp làn này
-                vehicles = max(lane1_obj['total_vehicles'], lane2_obj['total_vehicles'])
-                print("Số lượng xe được tính:", vehicles)
+                current_red_pair = (lane1_obj, lane2_obj)
+                break
+        if not current_red_pair:
+            return BASE_GREEN_TIME
 
-                # Tính thời gian đèn xanh dựa trên số xe
-                green_time = round(min(max(10 + vehicles * 0.5, 5), 30))
-                print("Thời gian green_time:", green_time)
+        # Get all vehicle counts for comparison
+        all_vehicle_counts = [lane['total_vehicles'] for lane in self.lanes]
+        avg_other_lanes = sum(all_vehicle_counts) / len(all_vehicle_counts)
+
+        # Calculate rewards for both lanes in the current red pair
+        lane1, lane2 = current_red_pair
+        lane1_vehicles = lane1['total_vehicles']
+        lane2_vehicles = lane2['total_vehicles']
+
+        # Calculate reward based on difference from average
+        lane1_reward = (lane1_vehicles - avg_other_lanes) * REWARD_MULTIPLIER
+        lane2_reward = (lane2_vehicles - avg_other_lanes) * REWARD_MULTIPLIER
+
+        # Use the maximum reward from the pair
+        max_reward = max(lane1_reward, lane2_reward)
+
+        # Calculate final green time
+        green_time = BASE_GREEN_TIME + max_reward
+        # Ensure green time stays within bounds
+        green_time = round(min(max(green_time, MIN_GREEN_TIME), MAX_GREEN_TIME))
+
+        print(f"Vehicle counts - Lane {lane1['id']}: {lane1_vehicles}, Lane {lane2['id']}: {lane2_vehicles}")
+        print(f"Average vehicles in other lanes: {avg_other_lanes:.2f}")
+        print(f"Reward: {max_reward:.2f}")
+        print(f"Final green time: {green_time}")
 
         return green_time
 

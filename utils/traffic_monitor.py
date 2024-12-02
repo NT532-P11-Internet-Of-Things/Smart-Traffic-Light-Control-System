@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import time
 from yolov8 import YOLOv8
 from cap_from_youtube import cap_from_youtube
 from .traffic_light_manager import TrafficLightManager
