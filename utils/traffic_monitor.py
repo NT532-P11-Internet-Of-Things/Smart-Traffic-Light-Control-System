@@ -73,6 +73,9 @@ class TrafficMonitor:
         detection_frames = []
         lane_counts = []
 
+        if  self.firebase_manager.is_need_sync('main_intersection'):
+            self.traffic_light_manager.switch_traffic_lights_immediately()
+
         # Check if all lanes are ready to switch
         if self.traffic_light_manager.update_timers():
             self.traffic_light_manager.switch_traffic_lights()

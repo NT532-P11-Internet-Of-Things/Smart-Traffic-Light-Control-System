@@ -193,3 +193,29 @@ class TrafficLightManager:
     def get_all_lanes_status(self):
         """Lấy trạng thái của tất cả các làn"""
         return self.lanes
+
+    def switch_traffic_lights_immediately(self):
+        """Chuyển trạng thái đèn giao thông về đèn vàng để chuẩn bị chuyển đèn"""
+        for pair in self.opposite_pairs:
+            lane1, lane2 = pair
+            lane1_obj = next(lane for lane in self.lanes if lane['id'] == lane1)
+            lane2_obj = next(lane for lane in self.lanes if lane['id'] == lane2)
+
+            # Cập nhật thời gian và số xe tại thời điểm chuyển
+            for lane in [lane1_obj, lane2_obj]:
+                lane['remaining_time'] = 0 if lane['is_green'] else 3
+
+                # Update Firebase if available
+                if self.firebase:
+                    status_data = {
+                        'remaining_time': lane['remaining_time'],
+                        'vehicle_count': lane['total_vehicles'],
+                        'last_update': int(time.time())
+                    }
+                    self.firebase.update_lane_status(
+                        self.intersection_id,
+                        lane['id'],
+                        status_data
+                    )
+
+        return self.lanes

@@ -39,6 +39,9 @@ class FirebaseManager:
         """Check if intersection is in auto mode"""
         return self.ref.child(f'intersections/{intersection_id}/isAuto').get()
 
+    def is_need_sync(self, intersection_id):
+        return self.ref.child(f'intersections/{intersection_id}/needSync').get()
+
     def update_lane_status(self, intersection_id, lane_id, status_data):
         """Update lane status in Firebase based on auto mode"""
         lane_ref = self.ref.child(f'intersections/{intersection_id}/lanes/{str(lane_id)}')
