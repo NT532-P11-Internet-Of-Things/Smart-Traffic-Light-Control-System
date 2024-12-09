@@ -137,6 +137,7 @@ class TrafficMonitor:
             combined_frame = self.create_grid_frame(detection_frames)
 
             # Show frame
+            cv2.resizeWindow("Traffic Monitoring", 1280, 720)
             cv2.imshow("Traffic Monitoring", combined_frame)
 
         # Cleanup

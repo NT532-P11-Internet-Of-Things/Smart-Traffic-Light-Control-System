@@ -1,13 +1,35 @@
 # main.py
 from utils import TrafficMonitor
 
+video = [
+    'https://www.youtube.com/watch?v=SYJQZFVGh90', # 0
+    'https://www.youtube.com/watch?v=CbB7p9rBZSc', # 1
+    'https://www.youtube.com/watch?v=YU4Bbbp2oA4', # 2
+    'https://www.youtube.com/watch?v=WlU4OvOnQTw', # 3
+    'https://www.youtube.com/watch?v=AqpRdLYcXaY', # 4
+    'https://www.youtube.com/watch?v=iwTNmVCaT4w', # 5
+    'https://www.youtube.com/watch?v=VKj4CzFRIOU', # 6
+    'https://www.youtube.com/watch?v=MD8LxvaE0OA', # 7
+    'https://www.youtube.com/watch?v=yOosBwk_xNk', # 8 
+    'https://www.youtube.com/watch?v=XdzXqbyKeQw', # 9  Ko có xe
+    'https://www.youtube.com/watch?v=jYeAVWWrp9g', # 10
+    'https://www.youtube.com/watch?v=QvVd9WyxHUA', # 11
+
+    'https://youtu.be/MNn9qKG2UFI?si=tYXsHABuQHSVUAv_',
+    'https://youtu.be/Kc-jyoCHZq8',
+    'https://youtu.be/SqxQRLcUvf4',
+    'https://youtu.be/xQlMXaL8yZs'
+
+    ]
+
+
 def main():
     # Video URLs for 4 lanes
     video_urls = [
-        'https://youtu.be/MNn9qKG2UFI?si=tYXsHABuQHSVUAv_',
-        'https://youtu.be/Kc-jyoCHZq8',
-        'https://youtu.be/SqxQRLcUvf4',
-        'https://youtu.be/xQlMXaL8yZs'
+        video[3],
+        video[4],
+        video[5],
+        video[14],
     ]
 
     # Path to YOLO model
