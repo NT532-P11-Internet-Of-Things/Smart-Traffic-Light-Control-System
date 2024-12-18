@@ -5,20 +5,25 @@ video = [
     'https://www.youtube.com/watch?v=SYJQZFVGh90', # 0
     'https://www.youtube.com/watch?v=CbB7p9rBZSc', # 1
     'https://www.youtube.com/watch?v=YU4Bbbp2oA4', # 2
-    'https://www.youtube.com/watch?v=WlU4OvOnQTw', # 3
-    'https://www.youtube.com/watch?v=AqpRdLYcXaY', # 4
-    'https://www.youtube.com/watch?v=iwTNmVCaT4w', # 5
-    'https://www.youtube.com/watch?v=VKj4CzFRIOU', # 6
-    'https://www.youtube.com/watch?v=MD8LxvaE0OA', # 7
-    'https://www.youtube.com/watch?v=yOosBwk_xNk', # 8 
-    'https://www.youtube.com/watch?v=XdzXqbyKeQw', # 9  Ko có xe
+    'https://www.youtube.com/watch?v=WlU4OvOnQTw', # 3 10 xe
+    'https://www.youtube.com/watch?v=AqpRdLYcXaY', # 4 9 xe nhma đếm ko trong làn nữa
+    'https://www.youtube.com/watch?v=iwTNmVCaT4w', # 5 ko chay dc
+    'https://www.youtube.com/watch?v=VKj4CzFRIOU', # 6 ko chay dc
+    'https://www.youtube.com/watch?v=MD8LxvaE0OA', # 7 toi ko chay dc
+    'https://www.youtube.com/watch?v=yOosBwk_xNk', # 8 toi 2 xe
+    'https://www.youtube.com/watch?v=XdzXqbyKeQw', # 9  Ko có xe nhma do ko dem dc
     'https://www.youtube.com/watch?v=jYeAVWWrp9g', # 10
     'https://www.youtube.com/watch?v=QvVd9WyxHUA', # 11
 
     'https://youtu.be/MNn9qKG2UFI?si=tYXsHABuQHSVUAv_',
     'https://youtu.be/Kc-jyoCHZq8',
     'https://youtu.be/SqxQRLcUvf4',
-    'https://youtu.be/xQlMXaL8yZs'
+    'https://youtu.be/xQlMXaL8yZs',
+
+    'https://www.youtube.com/watch?v=NBWd_5AZ79E', # 16 ko sài đc
+    'https://www.youtube.com/watch?v=7LrWGGJFEJo', # 17 12 xe có lúc 19
+    'https://www.youtube.com/watch?v=CftLBPI1Ga4', # 18 15 xe  
+    'https://www.youtube.com/watch?v=XgqTf1f-5Hw', # 19 nhanh quá đếm ko đc 
 
     ]
 
@@ -26,10 +31,10 @@ video = [
 def main():
     # Video URLs for 4 lanes
     video_urls = [
+        video[2],
         video[3],
-        video[4],
-        video[5],
-        video[14],
+        video[8],
+        video[8],
     ]
 
     # Path to YOLO model
